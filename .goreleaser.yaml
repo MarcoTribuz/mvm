@@ -17,7 +17,7 @@ checksum:
   name_template: checksums.txt
 
 dockers_v2:
-  - images: ["ghcr.io/marcotribuzio/mvm"]
+  - images: ["ghcr.io/marcotribuz/mvm"]
     tags: ["{{ .Version }}", "latest"]
     dockerfile: Dockerfile
     platforms: [linux/amd64, linux/arm64]

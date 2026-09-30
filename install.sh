@@ -1,9 +1,9 @@
 #!/bin/sh
 # Installs the latest mvm release into $MVM_INSTALL_DIR (default ~/.local/bin).
-#   curl -fsSL https://raw.githubusercontent.com/marcotribuzio/mvm/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
 set -eu
 
-REPO=marcotribuzio/mvm
+REPO=MarcoTribuz/mvm
 DIR=${MVM_INSTALL_DIR:-$HOME/.local/bin}
 
 case "$(uname -s)" in

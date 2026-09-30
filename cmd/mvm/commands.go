@@ -13,12 +13,12 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sys/unix"
 
-	"github.com/marcotribuzio/mvm/internal/install"
-	"github.com/marcotribuzio/mvm/internal/platform"
-	"github.com/marcotribuzio/mvm/internal/resolve"
-	"github.com/marcotribuzio/mvm/internal/run"
-	"github.com/marcotribuzio/mvm/internal/source"
-	"github.com/marcotribuzio/mvm/internal/store"
+	"github.com/MarcoTribuz/mvm/internal/install"
+	"github.com/MarcoTribuz/mvm/internal/platform"
+	"github.com/MarcoTribuz/mvm/internal/resolve"
+	"github.com/MarcoTribuz/mvm/internal/run"
+	"github.com/MarcoTribuz/mvm/internal/source"
+	"github.com/MarcoTribuz/mvm/internal/store"
 )
 
 func newRootCmd() *cobra.Command {

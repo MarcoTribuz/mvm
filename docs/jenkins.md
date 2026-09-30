@@ -11,7 +11,7 @@ it only once — the others wait on a lock.
 ## Install mvm on the agent
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/marcotribuzio/mvm/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
 # optional: pre-install the releases you use
 mvm install 2.16 3.0.4 3.3
 ```
@@ -60,7 +60,7 @@ Mount a named volume as `MVM_HOME` so releases survive the container:
 ```groovy
 agent {
   docker {
-    image 'ghcr.io/marcotribuzio/mvm:latest'
+    image 'ghcr.io/marcotribuz/mvm:latest'
     args  '-v mvm-cache:/mvm -e MVM_HOME=/mvm -e MVM_AUTO_INSTALL=1'
   }
 }
@@ -71,7 +71,7 @@ the container with a matching `--user`). Alternatively bake releases into your
 image:
 
 ```dockerfile
-FROM ghcr.io/marcotribuzio/mvm:latest
+FROM ghcr.io/marcotribuz/mvm:latest
 RUN mvm install 2.16 3.3
 ```
 

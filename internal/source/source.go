@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/marcotribuzio/mvm/internal/platform"
-	"github.com/marcotribuzio/mvm/internal/store"
+	"github.com/MarcoTribuz/mvm/internal/platform"
+	"github.com/MarcoTribuz/mvm/internal/store"
 )
 
 const (

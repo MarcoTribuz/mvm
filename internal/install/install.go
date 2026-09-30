@@ -20,9 +20,9 @@ import (
 
 	"github.com/gofrs/flock"
 
-	"github.com/marcotribuzio/mvm/internal/platform"
-	"github.com/marcotribuzio/mvm/internal/source"
-	"github.com/marcotribuzio/mvm/internal/store"
+	"github.com/MarcoTribuz/mvm/internal/platform"
+	"github.com/MarcoTribuz/mvm/internal/source"
+	"github.com/MarcoTribuz/mvm/internal/store"
 )
 
 // EnvKeepDownloads keeps tarballs in cache/downloads after extraction.

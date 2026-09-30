@@ -10,8 +10,8 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/marcotribuzio/mvm/internal/resolve"
-	"github.com/marcotribuzio/mvm/internal/store"
+	"github.com/MarcoTribuz/mvm/internal/resolve"
+	"github.com/MarcoTribuz/mvm/internal/store"
 )
 
 // Env describes the environment of one installed Meteor version.

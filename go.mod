@@ -1,4 +1,4 @@
-module github.com/marcotribuzio/mvm
+module github.com/MarcoTribuz/mvm
 
 go 1.25.0
 

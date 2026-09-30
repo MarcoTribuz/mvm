@@ -14,8 +14,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/marcotribuzio/mvm/internal/source"
-	"github.com/marcotribuzio/mvm/internal/store"
+	"github.com/MarcoTribuz/mvm/internal/source"
+	"github.com/MarcoTribuz/mvm/internal/store"
 )
 
 type entry struct {

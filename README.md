@@ -17,7 +17,7 @@ dev machines too.
 ## Install
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/marcotribuzio/mvm/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
 ```
 
 ## Usage
