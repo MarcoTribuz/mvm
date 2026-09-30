@@ -402,6 +402,14 @@ func doctorCmd() *cobra.Command {
 				}
 				fmt.Fprintf(out, "[%s] %s\n", mark, fmt.Sprintf(msg, args...))
 			}
+			// warn reports optional setup without failing doctor.
+			warn := func(ok bool, msg string, args ...any) {
+				mark := "ok  "
+				if !ok {
+					mark = "warn"
+				}
+				fmt.Fprintf(out, "[%s] %s\n", mark, fmt.Sprintf(msg, args...))
+			}
 
 			arch, err := platform.Arch()
 			check(err == nil, "platform: linux/%s %v", arch, errString(err))
@@ -439,7 +447,7 @@ func doctorCmd() *cobra.Command {
 					shimOnPath = true
 				}
 			}
-			check(shimOnPath, "%s on PATH (only needed for the transparent `meteor` shim; see `mvm init`)", s.BinDir())
+			warn(shimOnPath, "%s on PATH (only needed for the transparent `meteor` shim; see `mvm init`)", s.BinDir())
 
 			url := source.TarballURL("3.0.4", platform.ArchX86_64)
 			resp, err := http.Head(url)

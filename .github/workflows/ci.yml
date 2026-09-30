@@ -55,6 +55,16 @@ jobs:
           wait
           for v in ${{ matrix.versions }}; do test -s "out-$v/app-$v.tar.gz"; done
           test ! -e "$HOME/.meteor"
+      - name: transparent meteor shim picks the project release
+        run: |
+          set -eu
+          eval "$(mvm init)"
+          cd "$RUNNER_TEMP"
+          for v in ${{ matrix.versions }}; do
+            got=$(cd "app-$v" && meteor --version | tail -1)
+            echo "app-$v -> $got"
+            test "$got" = "Meteor $v"
+          done
       - run: mvm doctor
 
   release:
