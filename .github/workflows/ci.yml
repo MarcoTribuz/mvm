@@ -11,7 +11,10 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -32,6 +35,8 @@ jobs:
             versions: "2.16 3.3"
           - runner: ubuntu-24.04-arm
             versions: "3.0.4 3.3"
+          - runner: macos-latest
+            versions: "2.16 3.3"
     runs-on: ${{ matrix.runner }}
     env:
       MVM_HOME: ${{ github.workspace }}/.mvm
@@ -40,7 +45,10 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - run: go build -o /usr/local/bin/mvm ./cmd/mvm
+      - run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          go build -o "$RUNNER_TEMP/bin/mvm" ./cmd/mvm
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
       - run: mvm install ${{ matrix.versions }}
       - name: create and build one app per release, concurrently
         run: |

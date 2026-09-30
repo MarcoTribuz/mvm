@@ -29,11 +29,11 @@ func TestParseRefs(t *testing.T) {
 
 func TestTarballURL(t *testing.T) {
 	t.Setenv(EnvMirror, "")
-	if got := TarballURL("3.1", "x86_64"); got != DefaultBaseURL+"/3.1/meteor-bootstrap-os.linux.x86_64.tar.gz" {
+	if got := TarballURL("3.1", "linux", "x86_64"); got != DefaultBaseURL+"/3.1/meteor-bootstrap-os.linux.x86_64.tar.gz" {
 		t.Errorf("TarballURL = %s", got)
 	}
 	t.Setenv(EnvMirror, "https://nexus.example/meteor/")
-	if got := TarballURL("2.16", "x86_64"); got != "https://nexus.example/meteor/2.16/meteor-bootstrap-os.linux.x86_64.tar.gz" {
+	if got := TarballURL("2.16", "osx", "x86_64"); got != "https://nexus.example/meteor/2.16/meteor-bootstrap-os.osx.x86_64.tar.gz" {
 		t.Errorf("mirror TarballURL = %s", got)
 	}
 }

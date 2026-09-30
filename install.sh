@@ -8,6 +8,7 @@ DIR=${MVM_INSTALL_DIR:-$HOME/.local/bin}
 
 case "$(uname -s)" in
   Linux) os=linux ;;
+  Darwin) os=darwin ;;
   *) echo "mvm: unsupported OS $(uname -s)" >&2; exit 1 ;;
 esac
 case "$(uname -m)" in
@@ -25,7 +26,8 @@ base="https://github.com/$REPO/releases/download/v$version"
 file="mvm_${version}_${os}_${arch}.tar.gz"
 curl -fsSL -o "$tmp/$file" "$base/$file"
 curl -fsSL -o "$tmp/checksums.txt" "$base/checksums.txt"
-(cd "$tmp" && grep " $file\$" checksums.txt | sha256sum -c -)
+if command -v sha256sum >/dev/null 2>&1; then sha256="sha256sum"; else sha256="shasum -a 256"; fi
+(cd "$tmp" && grep " $file\$" checksums.txt | $sha256 -c -)
 
 mkdir -p "$DIR"
 tar -xzf "$tmp/$file" -C "$tmp" mvm

@@ -121,7 +121,11 @@ func download(ctx context.Context, s *store.Store, version, arch string, log io.
 		}
 	}
 
-	url := source.TarballURL(version, arch)
+	osName, err := platform.OS()
+	if err != nil {
+		return "", err
+	}
+	url := source.TarballURL(version, osName, arch)
 	fmt.Fprintf(log, "mvm: downloading %s\n", url)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -134,7 +138,7 @@ func download(ctx context.Context, s *store.Store, version, arch string, log io.
 	defer resp.Body.Close()
 	switch {
 	case resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusForbidden:
-		return "", fmt.Errorf("meteor %s is not published for linux/%s (%s)", version, arch, resp.Status)
+		return "", fmt.Errorf("meteor %s is not published for %s/%s (%s)", version, osName, arch, resp.Status)
 	case resp.StatusCode != http.StatusOK:
 		return "", fmt.Errorf("downloading meteor %s: %s", version, resp.Status)
 	}

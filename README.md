@@ -12,7 +12,7 @@ dev machines too.
   volume or K8s PVC). Concurrent builds share one download through a file lock.
 - **No Node conflicts**: every Meteor release ships its own Node; `mvm exec`
   puts that node/npm on `PATH` (Node 14 for 2.x, 20+ for 3.x).
-- **Single static binary**, no dependencies. Linux x86_64 and arm64.
+- **Single static binary**, no dependencies. Linux and macOS, x86_64 and arm64.
 
 ## Install
 
@@ -64,7 +64,7 @@ directory needs (set `MVM_AUTO_INSTALL=1` to install missing releases on the fly
 |---|---|
 | `MVM_HOME` | store location (default `~/.mvm`) |
 | `MVM_AUTO_INSTALL=1` | `exec` and the shim install missing releases |
-| `MVM_MIRROR` | tarball base URL (Artifactory/Nexus/S3), layout `<base>/<version>/meteor-bootstrap-os.linux.<arch>.tar.gz` |
+| `MVM_MIRROR` | tarball base URL (Artifactory/Nexus/S3), layout `<base>/<version>/meteor-bootstrap-os.<os>.<arch>.tar.gz` (`os.linux.x86_64`, `os.linux.aarch64`, `os.osx.x86_64`, `os.osx.arm64`) |
 | `MVM_KEEP_DOWNLOADS=1` | keep tarballs in `$MVM_HOME/cache/downloads` |
 | `GITHUB_TOKEN` | avoids GitHub rate limits for `ls-remote` |
 
@@ -86,10 +86,12 @@ was fetched (Meteor does not publish checksums).
 
 ## Supported releases
 
-| | x86_64 | arm64 |
-|---|---|---|
-| Meteor 3.x | ✓ | ✓ |
-| Meteor 2.x | ✓ | – (not published by Meteor) |
+| | Linux x86_64 | Linux arm64 | macOS x86_64 | macOS arm64 |
+|---|---|---|---|---|
+| Meteor 3.x | ✓ | ✓ | ✓ | ✓ |
+| Meteor 2.x | ✓ | – (not published by Meteor) | ✓ | ✓ |
+
+On Apple Silicon, `MVM_ARCH=x86_64` installs the Intel build to run under Rosetta.
 
 ## License
 

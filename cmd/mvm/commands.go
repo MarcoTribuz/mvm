@@ -411,8 +411,9 @@ func doctorCmd() *cobra.Command {
 				fmt.Fprintf(out, "[%s] %s\n", mark, fmt.Sprintf(msg, args...))
 			}
 
+			osName, _ := platform.OS()
 			arch, err := platform.Arch()
-			check(err == nil, "platform: linux/%s %v", arch, errString(err))
+			check(err == nil, "platform: %s/%s %v", osName, arch, errString(err))
 
 			s, err := openStore()
 			if err != nil {
@@ -449,7 +450,13 @@ func doctorCmd() *cobra.Command {
 			}
 			warn(shimOnPath, "%s on PATH (only needed for the transparent `meteor` shim; see `mvm init`)", s.BinDir())
 
-			url := source.TarballURL("3.0.4", platform.ArchX86_64)
+			// Probe a tarball this host would download, so a mirror holding
+			// only the local platform still passes.
+			probeOS, probeArch := platform.OSLinux, platform.ArchX86_64
+			if osName != "" && arch != "" {
+				probeOS, probeArch = osName, arch
+			}
+			url := source.TarballURL("3.0.4", probeOS, probeArch)
 			resp, err := http.Head(url)
 			if err == nil {
 				resp.Body.Close()

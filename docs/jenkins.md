@@ -84,7 +84,7 @@ pods share it; mvm's file locks work on local disks and NFSv4). Set
 ## Air-gapped / internal mirror
 
 Mirror the tarballs to Artifactory, Nexus or S3 keeping the layout
-`<base>/<version>/meteor-bootstrap-os.linux.<arch>.tar.gz` and set:
+`<base>/<version>/meteor-bootstrap-os.<os>.<arch>.tar.gz` and set:
 
 ```sh
 export MVM_MIRROR=https://nexus.example.com/repository/meteor

@@ -21,7 +21,7 @@ const (
 	// DefaultBaseURL is where the official installer downloads from.
 	DefaultBaseURL = "https://static.meteor.com/packages-bootstrap"
 	// EnvMirror overrides DefaultBaseURL (Artifactory, Nexus, S3...). The
-	// mirror must keep the layout <base>/<version>/meteor-bootstrap-os.linux.<arch>.tar.gz.
+	// mirror must keep the layout <base>/<version>/meteor-bootstrap-os.<os>.<arch>.tar.gz.
 	EnvMirror = "MVM_MIRROR"
 
 	tagsURL        = "https://api.github.com/repos/meteor/meteor/git/matching-refs/tags/release/METEOR@"
@@ -41,9 +41,9 @@ func BaseURL() string {
 	return DefaultBaseURL
 }
 
-// TarballURL returns the bootstrap tarball URL for a release and arch.
-func TarballURL(version, arch string) string {
-	return fmt.Sprintf("%s/%s/meteor-bootstrap-os.linux.%s.tar.gz", BaseURL(), version, arch)
+// TarballURL returns the bootstrap tarball URL for a release, OS and arch.
+func TarballURL(version, osName, arch string) string {
+	return fmt.Sprintf("%s/%s/meteor-bootstrap-os.%s.%s.tar.gz", BaseURL(), version, osName, arch)
 }
 
 // Remote lists published Meteor 2.x/3.x releases, using a cached copy

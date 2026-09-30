@@ -18,7 +18,7 @@ import (
 type Env struct {
 	Version   string
 	Warehouse string // $MVM_HOME/versions/<v>/.meteor
-	ToolDir   string // .../packages/meteor-tool/<tool>/mt-os.linux.<arch>
+	ToolDir   string // .../packages/meteor-tool/<tool>/mt-os.<os>.<arch>
 }
 
 // Load resolves the paths of an installed version.
