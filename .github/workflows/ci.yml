@@ -1,0 +1,85 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test -race ./...
+
+  # Installs real Meteor releases and builds a fresh app with each, in parallel.
+  integration:
+    needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            versions: "2.16 3.3"
+          - runner: ubuntu-24.04-arm
+            versions: "3.0.4 3.3"
+    runs-on: ${{ matrix.runner }}
+    env:
+      MVM_HOME: ${{ github.workspace }}/.mvm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: go build -o /usr/local/bin/mvm ./cmd/mvm
+      - run: mvm install ${{ matrix.versions }}
+      - name: create and build one app per release, concurrently
+        run: |
+          set -eu
+          cd "$RUNNER_TEMP"
+          for v in ${{ matrix.versions }}; do
+            mvm exec "$v" -- meteor create --minimal "app-$v"
+          done
+          for v in ${{ matrix.versions }}; do
+            (cd "app-$v" && mvm exec -- meteor build "../out-$v" --server-only) &
+          done
+          wait
+          for v in ${{ matrix.versions }}; do test -s "out-$v/app-$v.tar.gz"; done
+          test ! -e "$HOME/.meteor"
+      - run: mvm doctor
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, integration]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

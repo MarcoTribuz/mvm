@@ -1,0 +1,26 @@
+version: 2
+
+builds:
+  - main: ./cmd/mvm
+    binary: mvm
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "mvm_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: checksums.txt
+
+dockers_v2:
+  - images: ["ghcr.io/marcotribuzio/mvm"]
+    tags: ["{{ .Version }}", "latest"]
+    dockerfile: Dockerfile
+    platforms: [linux/amd64, linux/arm64]
+
+changelog:
+  sort: asc
