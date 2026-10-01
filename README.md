@@ -20,16 +20,26 @@ dev machines too.
 curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
 ```
 
+The installer puts `mvm` in `~/.local/bin` (`MVM_INSTALL_DIR`), creates the
+`meteor` shim and adds a block with `PATH` and shell completion to your
+profile (`~/.zshrc`, `~/.bashrc`/`~/.bash_profile` or fish `config.fish`).
+Choose the file with `PROFILE=~/.myrc`, or skip it with `PROFILE=/dev/null`:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | PROFILE=/dev/null sh
+```
+
+Update later with `mvm self-update` (or `mvm self-update <version>`).
+
 ## Uninstall
 
-Removes the mvm binary and `$MVM_HOME` (downloaded releases and the shim);
-`~/.meteor` is left alone. Asks for confirmation; pass `-y` to skip it.
+Removes the mvm binary, `$MVM_HOME` (downloaded releases and the shim) and
+the profile block added by the installer; `~/.meteor` is left alone. Asks for
+confirmation; pass `-y` to skip it.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/uninstall.sh | sh
 ```
-
-Then drop the `.mvm/bin` PATH line from your shell profile if you added it.
 
 ## Usage
 
@@ -60,6 +70,30 @@ mvm init   # creates $MVM_HOME/bin/meteor and prints: export PATH=…/.mvm/bin:"
 
 With that directory on `PATH`, plain `meteor …` runs the release the current
 directory needs (set `MVM_AUTO_INSTALL=1` to install missing releases on the fly).
+
+### Aliases
+
+```sh
+mvm alias legacy 2.16      # name a release
+mvm exec legacy -- meteor --version
+mvm install latest         # built-in: newest stable release for this platform
+mvm alias                  # list (also shown in `mvm list`)
+mvm unalias legacy
+```
+
+Aliases work wherever a version does: arguments, `MVM_METEOR_VERSION` and
+`.mvmrc`. `default` is the release set with `mvm use`. `.meteor/release`
+always names a real release.
+
+### Shell completion
+
+The installer sets it up. To do it by hand, add one of these to your profile:
+
+```sh
+source <(mvm completion zsh)       # zsh (after compinit)
+eval "$(mvm completion bash)"      # bash
+mvm completion fish | source       # fish
+```
 
 ### Version resolution order
 

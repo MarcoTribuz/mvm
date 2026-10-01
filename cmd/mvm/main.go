@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/MarcoTribuz/mvm/internal/install"
@@ -59,7 +60,7 @@ func shim(ctx context.Context, args []string) error {
 // prepare resolves a version (explicit or from context), optionally installs
 // it, and returns its environment.
 func prepare(ctx context.Context, s *store.Store, explicit string, autoInstall bool) (*run.Env, error) {
-	res, err := resolveVersion(s, explicit)
+	res, err := resolveVersion(ctx, s, explicit)
 	if err != nil {
 		return nil, err
 	}
@@ -84,19 +85,49 @@ func prepare(ctx context.Context, s *store.Store, explicit string, autoInstall b
 	return env, nil
 }
 
-func resolveVersion(s *store.Store, explicit string) (resolve.Result, error) {
+// resolveVersion resolves the version for the current directory and expands
+// aliases, except in .meteor/release which always holds a real release.
+func resolveVersion(ctx context.Context, s *store.Store, explicit string) (resolve.Result, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return resolve.Result{}, err
 	}
-	return resolve.Resolve(resolve.Options{Flag: explicit, Dir: cwd, DefaultFile: s.DefaultFile()})
+	// Resolve normalizes, which would mangle alias names; expand the raw flag first.
+	if explicit != "" {
+		v, err := expandVersion(ctx, s, explicit)
+		if err != nil {
+			return resolve.Result{}, err
+		}
+		res := resolve.Result{Version: v, Source: resolve.SourceFlag}
+		if v != resolve.Normalize(explicit) {
+			res.Alias = strings.TrimSpace(explicit)
+		}
+		return res, nil
+	}
+	res, err := resolve.Resolve(resolve.Options{Dir: cwd, DefaultFile: s.DefaultFile()})
+	if err != nil || res.Source == resolve.SourceRelease {
+		return res, err
+	}
+	raw := res.Raw
+	v, err := expandVersion(ctx, s, raw)
+	if err != nil {
+		return resolve.Result{}, fmt.Errorf("%s: %w", describe(res), err)
+	}
+	if v != res.Version {
+		res.Alias, res.Version = strings.TrimSpace(raw), v
+	}
+	return res, nil
 }
 
 func describe(r resolve.Result) string {
+	from := string(r.Source)
 	if r.Path != "" {
-		return r.Path
+		from = r.Path
 	}
-	return string(r.Source)
+	if r.Alias != "" {
+		from += " via alias " + r.Alias
+	}
+	return from
 }
 
 // installShim links $MVM_HOME/bin/meteor to the running mvm binary.

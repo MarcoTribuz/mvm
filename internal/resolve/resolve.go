@@ -35,6 +35,8 @@ type Result struct {
 	Version string
 	Source  Source
 	Path    string // file the version was read from, if any
+	Raw     string // value as written, before Normalize (may be an alias)
+	Alias   string // alias the version was given as, if any (set by callers)
 }
 
 // Options are the inputs to Resolve.
@@ -47,10 +49,10 @@ type Options struct {
 // Resolve applies the order: flag, env, .meteor/release, .mvmrc, default.
 func Resolve(o Options) (Result, error) {
 	if v := strings.TrimSpace(o.Flag); v != "" {
-		return Result{Version: Normalize(v), Source: SourceFlag}, nil
+		return Result{Version: Normalize(v), Raw: v, Source: SourceFlag}, nil
 	}
 	if v := strings.TrimSpace(os.Getenv(EnvVersion)); v != "" {
-		return Result{Version: Normalize(v), Source: SourceEnv}, nil
+		return Result{Version: Normalize(v), Raw: v, Source: SourceEnv}, nil
 	}
 	if r, ok, err := ProjectRelease(o.Dir); err != nil || ok {
 		return r, err
@@ -61,13 +63,13 @@ func Resolve(o Options) (Result, error) {
 			return Result{}, err
 		}
 		if v != "" {
-			return Result{Version: Normalize(v), Source: SourceRC, Path: p}, nil
+			return Result{Version: Normalize(v), Raw: v, Source: SourceRC, Path: p}, nil
 		}
 	}
 	if o.DefaultFile != "" {
 		v, err := readFirstLine(o.DefaultFile)
 		if err == nil && v != "" {
-			return Result{Version: Normalize(v), Source: SourceDefault, Path: o.DefaultFile}, nil
+			return Result{Version: Normalize(v), Raw: v, Source: SourceDefault, Path: o.DefaultFile}, nil
 		}
 	}
 	return Result{}, ErrNoVersion

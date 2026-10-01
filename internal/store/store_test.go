@@ -87,3 +87,29 @@ func TestPinLauncher(t *testing.T) {
 		t.Errorf("launcher not restored: %s", cur)
 	}
 }
+
+func TestAliases(t *testing.T) {
+	s := &Store{Root: t.TempDir()}
+	if got := s.Alias("lts"); got != "" {
+		t.Errorf("unset alias = %q", got)
+	}
+	if err := s.SetAlias("lts", "2.16"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetAlias("work", "3.1.2"); err != nil {
+		t.Fatal(err)
+	}
+	if got := s.Alias("lts"); got != "2.16" {
+		t.Errorf("Alias(lts) = %q", got)
+	}
+	all, err := s.Aliases()
+	if err != nil || !reflect.DeepEqual(all, map[string]string{"lts": "2.16", "work": "3.1.2"}) {
+		t.Errorf("Aliases() = %v, %v", all, err)
+	}
+	if err := s.RemoveAlias("lts"); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RemoveAlias("lts"); err == nil {
+		t.Error("removing a missing alias should fail")
+	}
+}

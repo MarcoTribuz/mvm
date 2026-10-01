@@ -7,6 +7,7 @@
 //	  checksums/           sha256 recorded on first download (trust on first use)
 //	  locks/               per-version install locks
 //	  default              global default version
+//	  aliases/<name>       version a user-defined alias points to
 package store
 
 import (
@@ -64,6 +65,7 @@ func (s *Store) ChecksumsDir() string         { return filepath.Join(s.Root, "ch
 func (s *Store) LocksDir() string             { return filepath.Join(s.Root, "locks") }
 func (s *Store) LockPath(v string) string     { return filepath.Join(s.LocksDir(), v+".lock") }
 func (s *Store) DefaultFile() string          { return filepath.Join(s.Root, "default") }
+func (s *Store) AliasesDir() string           { return filepath.Join(s.Root, "aliases") }
 func (s *Store) RemoteCacheFile() string {
 	return filepath.Join(s.Root, "cache", "remote-versions.json")
 }
@@ -170,6 +172,53 @@ func (s *Store) SetDefault(v string) error {
 		return err
 	}
 	return WriteFileAtomic(s.DefaultFile(), []byte(v+"\n"), 0o644)
+}
+
+// Alias returns the version alias name points to, or "" if it is not set.
+func (s *Store) Alias(name string) string {
+	b, err := os.ReadFile(filepath.Join(s.AliasesDir(), name))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(b))
+}
+
+// SetAlias points alias name at version v.
+func (s *Store) SetAlias(name, v string) error {
+	if err := os.MkdirAll(s.AliasesDir(), 0o755); err != nil {
+		return err
+	}
+	return WriteFileAtomic(filepath.Join(s.AliasesDir(), name), []byte(v+"\n"), 0o644)
+}
+
+// RemoveAlias deletes alias name.
+func (s *Store) RemoveAlias(name string) error {
+	err := os.Remove(filepath.Join(s.AliasesDir(), name))
+	if errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("alias %q does not exist", name)
+	}
+	return err
+}
+
+// Aliases returns all user-defined aliases as name -> version.
+func (s *Store) Aliases() (map[string]string, error) {
+	entries, err := os.ReadDir(s.AliasesDir())
+	if errors.Is(err, os.ErrNotExist) {
+		return map[string]string{}, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]string, len(entries))
+	for _, e := range entries {
+		if e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		if v := s.Alias(e.Name()); v != "" {
+			out[e.Name()] = v
+		}
+	}
+	return out, nil
 }
 
 // TouchUsed records that version v was just used (for prune --unused-days).

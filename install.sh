@@ -1,10 +1,15 @@
 #!/bin/sh
-# Installs the latest mvm release into $MVM_INSTALL_DIR (default ~/.local/bin).
+# Installs the latest mvm release into $MVM_INSTALL_DIR (default ~/.local/bin),
+# creates the meteor shim and adds PATH + shell completion to your profile.
 #   curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
+# PROFILE=/path/to/rc picks the profile; PROFILE=/dev/null leaves profiles alone.
 set -eu
 
 REPO=MarcoTribuz/mvm
 DIR=${MVM_INSTALL_DIR:-$HOME/.local/bin}
+HOME_DIR=${MVM_HOME:-$HOME/.mvm}
+BEGIN='# >>> mvm >>>'
+END='# <<< mvm <<<'
 
 case "$(uname -s)" in
   Linux) os=linux ;;
@@ -33,4 +38,51 @@ mkdir -p "$DIR"
 tar -xzf "$tmp/$file" -C "$tmp" mvm
 install -m 0755 "$tmp/mvm" "$DIR/mvm"
 echo "mvm $version installed to $DIR/mvm"
-case ":$PATH:" in *":$DIR:"*) ;; *) echo "add $DIR to your PATH" ;; esac
+MVM_HOME="$HOME_DIR" "$DIR/mvm" init >/dev/null
+
+# Pick the profile of the user's login shell, like nvm does.
+shell=$(basename "${SHELL:-sh}")
+if [ -n "${PROFILE:-}" ]; then
+  profile=$PROFILE
+else
+  case "$shell" in
+    zsh) profile=${ZDOTDIR:-$HOME}/.zshrc ;;
+    bash) if [ "$os" = darwin ]; then profile=$HOME/.bash_profile; else profile=$HOME/.bashrc; fi ;;
+    fish) profile=${XDG_CONFIG_HOME:-$HOME/.config}/fish/config.fish ;;
+    *) profile=$HOME/.profile ;;
+  esac
+fi
+case "$profile" in
+  fish|*.fish) kind=fish ;;
+  *zshrc|*.zsh*) kind=zsh ;;
+  *bashrc|*bash_profile) kind=bash ;;
+  *) kind=sh ;;
+esac
+
+# Write paths under $HOME as "$HOME/..." so the profile stays readable.
+rel() { case "$1" in "$HOME"/*) printf '%s' "\$HOME${1#"$HOME"}" ;; *) printf '%s' "$1" ;; esac; }
+
+block() {
+  bin=$(rel "$DIR") shim=$(rel "$HOME_DIR/bin")
+  echo "$BEGIN"
+  if [ "$kind" = fish ]; then
+    echo "set -gx PATH \"$bin\" \"$shim\" \$PATH"
+    echo "mvm completion fish | source"
+  else
+    echo "export PATH=\"$bin:$shim:\$PATH\""
+    [ "$kind" = zsh ] && echo 'if (( $+functions[compdef] )); then source <(mvm completion zsh); fi'
+    [ "$kind" = bash ] && echo 'eval "$(mvm completion bash)"'
+  fi
+  echo "$END"
+}
+
+if [ "$profile" = /dev/null ]; then
+  echo "PROFILE=/dev/null: add $DIR and $HOME_DIR/bin to your PATH yourself"
+elif [ -f "$profile" ] && grep -qxF "$BEGIN" "$profile"; then
+  echo "$profile already sets up mvm"
+else
+  mkdir -p "$(dirname "$profile")"
+  { echo; block; } >>"$profile"
+  echo "added mvm PATH and completion to $profile"
+  echo "open a new terminal, or run: . \"$profile\""
+fi

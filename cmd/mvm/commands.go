@@ -31,8 +31,8 @@ func newRootCmd() *cobra.Command {
 	}
 	root.AddCommand(
 		installCmd(), uninstallCmd(), listCmd(), lsRemoteCmd(),
-		useCmd(), currentCmd(), whichCmd(), execCmd(), envCmd(),
-		pruneCmd(), doctorCmd(), initCmd(), versionCmd(),
+		useCmd(), aliasCmd(), unaliasCmd(), currentCmd(), whichCmd(), execCmd(), envCmd(),
+		pruneCmd(), doctorCmd(), initCmd(), selfUpdateCmd(), versionCmd(),
 	)
 	return root
 }
@@ -45,7 +45,9 @@ func installCmd() *cobra.Command {
 		Use:   "install [version...]",
 		Short: "Install Meteor releases (default: the one the current project needs)",
 		Example: "  mvm install 3.1.2 2.16\n" +
+			"  mvm install latest\n" +
 			"  mvm install            # reads .meteor/release",
+		ValidArgsFunction: completeVersions(true),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := openStore()
 			if err != nil {
@@ -56,14 +58,17 @@ func installCmd() *cobra.Command {
 				return err
 			}
 			if len(args) == 0 {
-				res, err := resolveVersion(s, "")
+				res, err := resolveVersion(cmd.Context(), s, "")
 				if err != nil {
 					return err
 				}
 				args = []string{res.Version}
 			}
 			for _, v := range args {
-				v = resolve.Normalize(v)
+				v, err := expandVersion(cmd.Context(), s, v)
+				if err != nil {
+					return err
+				}
 				if !force && s.IsInstalled(v) {
 					fmt.Fprintf(cmd.ErrOrStderr(), "mvm: meteor %s already installed\n", v)
 					continue
@@ -81,17 +86,21 @@ func installCmd() *cobra.Command {
 
 func uninstallCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:     "uninstall <version...>",
-		Aliases: []string{"rm"},
-		Short:   "Remove installed Meteor releases",
-		Args:    cobra.MinimumNArgs(1),
+		Use:               "uninstall <version...>",
+		Aliases:           []string{"rm"},
+		Short:             "Remove installed Meteor releases",
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: completeVersions(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := openStore()
 			if err != nil {
 				return err
 			}
 			for _, v := range args {
-				v = resolve.Normalize(v)
+				v, err := expandVersion(cmd.Context(), s, v)
+				if err != nil {
+					return err
+				}
 				if err := s.Remove(v); err != nil {
 					return err
 				}
@@ -121,16 +130,16 @@ func listCmd() *cobra.Command {
 				fmt.Fprintln(cmd.ErrOrStderr(), "no meteor versions installed (try `mvm install <version>`)")
 				return nil
 			}
-			def := s.Default()
-			cur, _ := resolveVersion(s, "")
+			aliases, _ := s.Aliases()
+			cur, _ := resolveVersion(cmd.Context(), s, "")
 			for _, v := range vs {
 				mark := "  "
 				if v == cur.Version {
 					mark = "->"
 				}
 				suffix := ""
-				if v == def {
-					suffix = " (default)"
+				if names := aliasesFor(s, v, aliases); len(names) > 0 {
+					suffix = " (" + strings.Join(names, ", ") + ")"
 				}
 				fmt.Fprintf(cmd.OutOrStdout(), "%s %s%s\n", mark, v, suffix)
 			}
@@ -181,15 +190,20 @@ func lsRemoteCmd() *cobra.Command {
 func useCmd() *cobra.Command {
 	var doInstall bool
 	cmd := &cobra.Command{
-		Use:   "use <version>",
-		Short: "Set the default Meteor release (used outside Meteor projects)",
-		Args:  cobra.ExactArgs(1),
+		Use:               "use <version>",
+		Short:             "Set the default Meteor release (used outside Meteor projects)",
+		Example:           "  mvm use 3.3\n  mvm use --install latest",
+		Args:              cobra.ExactArgs(1),
+		ValidArgsFunction: completeVersions(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := openStore()
 			if err != nil {
 				return err
 			}
-			v := resolve.Normalize(args[0])
+			v, err := expandVersion(cmd.Context(), s, args[0])
+			if err != nil {
+				return err
+			}
 			if !s.IsInstalled(v) {
 				if !doInstall {
 					return fmt.Errorf("meteor %s is not installed (use --install)", v)
@@ -226,7 +240,7 @@ func currentCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			res, err := resolveVersion(s, "")
+			res, err := resolveVersion(cmd.Context(), s, "")
 			if err != nil {
 				return err
 			}
@@ -242,15 +256,16 @@ func currentCmd() *cobra.Command {
 
 func whichCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "which [version]",
-		Short: "Print the path of the meteor launcher for a release",
-		Args:  cobra.MaximumNArgs(1),
+		Use:               "which [version]",
+		Short:             "Print the path of the meteor launcher for a release",
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeVersions(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := openStore()
 			if err != nil {
 				return err
 			}
-			res, err := resolveVersion(s, firstArg(args))
+			res, err := resolveVersion(cmd.Context(), s, firstArg(args))
 			if err != nil {
 				return err
 			}
@@ -274,6 +289,7 @@ func execCmd() *cobra.Command {
 		Example: "  mvm exec --auto-install -- meteor npm ci\n" +
 			"  mvm exec -- meteor build ../out --server-only\n" +
 			"  mvm exec 2.16 -- meteor --version",
+		ValidArgsFunction: completeVersions(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			explicit, argv, err := splitExecArgs(args, cmd.ArgsLenAtDash())
 			if err != nil {
@@ -300,16 +316,17 @@ func execCmd() *cobra.Command {
 func envCmd() *cobra.Command {
 	var noNode bool
 	cmd := &cobra.Command{
-		Use:     "env [version]",
-		Short:   "Print shell exports for a Meteor release",
-		Example: `  eval "$(mvm env 3.1.2)"`,
-		Args:    cobra.MaximumNArgs(1),
+		Use:               "env [version]",
+		Short:             "Print shell exports for a Meteor release",
+		Example:           `  eval "$(mvm env 3.1.2)"`,
+		Args:              cobra.MaximumNArgs(1),
+		ValidArgsFunction: completeVersions(false),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := openStore()
 			if err != nil {
 				return err
 			}
-			res, err := resolveVersion(s, firstArg(args))
+			res, err := resolveVersion(cmd.Context(), s, firstArg(args))
 			if err != nil {
 				return err
 			}
