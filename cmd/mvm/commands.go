@@ -357,7 +357,8 @@ func pruneCmd() *cobra.Command {
 		Use:   "prune",
 		Short: "Remove Meteor releases that are no longer used",
 		Long: "Remove installed releases. --keep N keeps the N most recently used;\n" +
-			"--unused-days D removes those not used for D days. The default release is never removed.",
+			"--unused-days D removes those not used for D days. The default release and\n" +
+			"releases an alias points to are never removed.",
 		Example: "  mvm prune --unused-days 30\n  mvm prune --keep 5 --dry-run",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -373,10 +374,18 @@ func pruneCmd() *cobra.Command {
 				return err
 			}
 			sort.SliceStable(vs, func(i, j int) bool { return s.LastUsed(vs[i]).After(s.LastUsed(vs[j])) })
-			def := s.Default()
+			// Releases a job may ask for by name stay, even when idle.
+			protected := map[string]bool{s.Default(): true}
+			aliases, err := s.Aliases()
+			if err != nil {
+				return err
+			}
+			for _, v := range aliases {
+				protected[v] = true
+			}
 			cutoff := time.Now().AddDate(0, 0, -unusedDays)
 			for i, v := range vs {
-				if v == def {
+				if protected[v] {
 					continue
 				}
 				used := s.LastUsed(v)

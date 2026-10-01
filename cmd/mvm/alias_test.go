@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/MarcoTribuz/mvm/internal/resolve"
 	"github.com/MarcoTribuz/mvm/internal/store"
@@ -86,5 +89,29 @@ func TestResolveVersionAliases(t *testing.T) {
 	t.Setenv(resolve.EnvVersion, "")
 	if res, _ := resolveVersion(ctx, s, ""); res.Version != "3.1.2" || res.Alias != "" {
 		t.Errorf("release: %+v", res)
+	}
+}
+
+func TestPruneKeepsAliasedReleases(t *testing.T) {
+	s := &store.Store{Root: t.TempDir()}
+	t.Setenv(store.EnvHome, s.Root)
+	old := time.Now().AddDate(0, 0, -60)
+	for _, v := range []string{"2.16", "3.0.4", "3.2", "3.3"} {
+		os.MkdirAll(s.WarehouseDir(v), 0o755)
+		os.WriteFile(s.LauncherPath(v), nil, 0o755)
+		os.Chtimes(s.VersionDir(v), old, old)
+	}
+	s.SetDefault("3.3")
+	s.SetAlias("legacy", "2.16")
+
+	cmd := newRootCmd()
+	cmd.SetArgs([]string{"prune", "--unused-days", "30"})
+	cmd.SetOut(io.Discard)
+	if err := cmd.Execute(); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.Installed()
+	if want := []string{"2.16", "3.3"}; !reflect.DeepEqual(got, want) {
+		t.Errorf("after prune: %v, want %v", got, want)
 	}
 }

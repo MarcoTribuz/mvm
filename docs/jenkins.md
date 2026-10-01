@@ -122,9 +122,8 @@ mvm prune --unused-days 30     # e.g. from a weekly job
 mvm doctor
 ```
 
-`prune` never removes the default release, but it does remove releases that
-only an alias points to, so pair it with `--keep` or re-run `mvm install <alias>`
-in the job that uses the alias (it is a no-op when already installed).
+`prune` never removes the default release or releases an alias points to;
+`mvm unalias` a name to let its release be pruned.
 
 ### Updating mvm
 
