@@ -20,6 +20,17 @@ dev machines too.
 curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/install.sh | sh
 ```
 
+## Uninstall
+
+Removes the mvm binary and `$MVM_HOME` (downloaded releases and the shim);
+`~/.meteor` is left alone. Asks for confirmation; pass `-y` to skip it.
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/MarcoTribuz/mvm/main/uninstall.sh | sh
+```
+
+Then drop the `.mvm/bin` PATH line from your shell profile if you added it.
+
 ## Usage
 
 ```sh
